@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import {
 import { Search, X, SlidersHorizontal, Filter } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 
 const locations = [
   'New York',
@@ -49,16 +51,123 @@ const JobFilters = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [salaryRange, setSalaryRange] = useState([40000]);
   const [searchInput, setSearchInput] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [selectedExperiences, setSelectedExperiences] = useState<string[]>([]);
+  const [jobType, setJobType] = useState('all');
+  const [lastDate, setLastDate] = useState('all');
+  
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  
+  // Initialize state from URL parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const keyword = searchParams.get('keyword') || '';
+    setSearchInput(keyword);
+    
+    // You could also set other filters from URL parameters here
+  }, [location.search]);
 
   const handleReset = () => {
     setSalaryRange([40000]);
     setSearchInput('');
-    // Reset other filters
+    setSelectedCategories([]);
+    setSelectedLocations([]);
+    setSelectedExperiences([]);
+    setJobType('all');
+    setLastDate('all');
+    
+    // Navigate to /jobs without any params
+    navigate('/jobs');
+    
+    toast({
+      title: "Filters Reset",
+      description: "All filters have been reset to default values.",
+    });
   };
 
   const toggleFilters = () => {
     setIsFilterOpen(!isFilterOpen);
+  };
+  
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    const params = new URLSearchParams();
+    
+    if (searchInput) params.append('keyword', searchInput);
+    
+    // Add other filter parameters
+    if (selectedCategories.length > 0) {
+      params.append('categories', selectedCategories.join(','));
+    }
+    
+    if (selectedLocations.length > 0) {
+      params.append('locations', selectedLocations.join(','));
+    }
+    
+    if (selectedExperiences.length > 0) {
+      params.append('experiences', selectedExperiences.join(','));
+    }
+    
+    if (jobType !== 'all') {
+      params.append('jobType', jobType);
+    }
+    
+    if (lastDate !== 'all') {
+      params.append('lastDate', lastDate);
+    }
+    
+    if (salaryRange[0] !== 40000) {
+      params.append('salary', salaryRange[0].toString());
+    }
+    
+    navigate({
+      pathname: '/jobs',
+      search: params.toString()
+    });
+    
+    if (isFilterOpen) {
+      setIsFilterOpen(false);
+    }
+    
+    toast({
+      title: "Filters Applied",
+      description: "Job listings have been updated based on your filters.",
+    });
+  };
+  
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    setSelectedCategories(prev => {
+      if (checked) {
+        return [...prev, category];
+      } else {
+        return prev.filter(item => item !== category);
+      }
+    });
+  };
+  
+  const handleLocationChange = (location: string, checked: boolean) => {
+    setSelectedLocations(prev => {
+      if (checked) {
+        return [...prev, location];
+      } else {
+        return prev.filter(item => item !== location);
+      }
+    });
+  };
+  
+  const handleExperienceChange = (experience: string, checked: boolean) => {
+    setSelectedExperiences(prev => {
+      if (checked) {
+        return [...prev, experience];
+      } else {
+        return prev.filter(item => item !== experience);
+      }
+    });
   };
 
   // Filter sidebar for mobile
@@ -72,7 +181,7 @@ const JobFilters = () => {
           </Button>
           
           <div className="flex-1 mx-2">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
@@ -87,11 +196,12 @@ const JobFilters = () => {
                   size="icon"
                   className="absolute right-1 top-1 h-7 w-7"
                   onClick={() => setSearchInput('')}
+                  type="button"
                 >
                   <X className="h-3 w-3" />
                 </Button>
               )}
-            </div>
+            </form>
           </div>
           
           <Button variant="outline" size="sm" onClick={handleReset}>
@@ -118,7 +228,20 @@ const JobFilters = () => {
                 
                 <div className="flex-1 overflow-auto p-4">
                   <div className="space-y-6">
-                    <FilterAccordion />
+                    <FilterAccordion 
+                      salaryRange={salaryRange}
+                      setSalaryRange={setSalaryRange}
+                      jobType={jobType}
+                      setJobType={setJobType}
+                      lastDate={lastDate}
+                      setLastDate={setLastDate}
+                      selectedCategories={selectedCategories}
+                      handleCategoryChange={handleCategoryChange}
+                      selectedLocations={selectedLocations}
+                      handleLocationChange={handleLocationChange}
+                      selectedExperiences={selectedExperiences}
+                      handleExperienceChange={handleExperienceChange}
+                    />
                   </div>
                 </div>
                 
@@ -126,7 +249,7 @@ const JobFilters = () => {
                   <Button variant="outline" className="flex-1" onClick={handleReset}>
                     Reset All
                   </Button>
-                  <Button className="flex-1" onClick={toggleFilters}>
+                  <Button className="flex-1" onClick={() => handleSearch()}>
                     Apply Filters
                   </Button>
                 </div>
@@ -141,7 +264,7 @@ const JobFilters = () => {
   // Desktop filter sidebar
   return (
     <div className="w-full md:w-72 lg:w-80 space-y-6 mb-8 md:mb-0">
-      <div className="relative">
+      <form onSubmit={handleSearch} className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
@@ -150,7 +273,14 @@ const JobFilters = () => {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-      </div>
+        <Button 
+          type="submit" 
+          size="sm" 
+          className="absolute right-1 top-1"
+        >
+          Search
+        </Button>
+      </form>
       
       <div className="bg-white border rounded-lg shadow-sm">
         <div className="p-4 border-b flex justify-between items-center">
@@ -164,16 +294,61 @@ const JobFilters = () => {
         </div>
         
         <div className="p-4 space-y-6">
-          <FilterAccordion />
+          <FilterAccordion 
+            salaryRange={salaryRange}
+            setSalaryRange={setSalaryRange}
+            jobType={jobType}
+            setJobType={setJobType}
+            lastDate={lastDate}
+            setLastDate={setLastDate}
+            selectedCategories={selectedCategories}
+            handleCategoryChange={handleCategoryChange}
+            selectedLocations={selectedLocations}
+            handleLocationChange={handleLocationChange}
+            selectedExperiences={selectedExperiences}
+            handleExperienceChange={handleExperienceChange}
+          />
+        </div>
+        
+        <div className="p-4 border-t">
+          <Button className="w-full" onClick={() => handleSearch()}>
+            Apply Filters
+          </Button>
         </div>
       </div>
     </div>
   );
 };
 
-const FilterAccordion = () => {
-  const [salaryRange, setSalaryRange] = useState([40000]);
-  
+interface FilterAccordionProps {
+  salaryRange: number[];
+  setSalaryRange: React.Dispatch<React.SetStateAction<number[]>>;
+  jobType: string;
+  setJobType: React.Dispatch<React.SetStateAction<string>>;
+  lastDate: string;
+  setLastDate: React.Dispatch<React.SetStateAction<string>>;
+  selectedCategories: string[];
+  handleCategoryChange: (category: string, checked: boolean) => void;
+  selectedLocations: string[];
+  handleLocationChange: (location: string, checked: boolean) => void;
+  selectedExperiences: string[];
+  handleExperienceChange: (experience: string, checked: boolean) => void;
+}
+
+const FilterAccordion: React.FC<FilterAccordionProps> = ({
+  salaryRange,
+  setSalaryRange,
+  jobType,
+  setJobType,
+  lastDate,
+  setLastDate,
+  selectedCategories,
+  handleCategoryChange,
+  selectedLocations,
+  handleLocationChange,
+  selectedExperiences,
+  handleExperienceChange
+}) => {
   return (
     <Accordion type="multiple" defaultValue={['category', 'jobType', 'location', 'experience', 'salary']} className="space-y-4">
       <AccordionItem value="category" className="border rounded-md">
@@ -182,7 +357,11 @@ const FilterAccordion = () => {
           <div className="space-y-2">
             {categories.map((category) => (
               <div key={category} className="flex items-center space-x-2">
-                <Checkbox id={`category-${category}`} />
+                <Checkbox 
+                  id={`category-${category}`} 
+                  checked={selectedCategories.includes(category)}
+                  onCheckedChange={(checked) => handleCategoryChange(category, checked === true)}
+                />
                 <Label htmlFor={`category-${category}`} className="text-sm font-normal cursor-pointer">
                   {category}
                 </Label>
@@ -195,7 +374,7 @@ const FilterAccordion = () => {
       <AccordionItem value="jobType" className="border rounded-md">
         <AccordionTrigger className="px-4">Job Type</AccordionTrigger>
         <AccordionContent className="px-4 pt-2 pb-4">
-          <RadioGroup defaultValue="all">
+          <RadioGroup value={jobType} onValueChange={setJobType}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="all" id="jobType-all" />
               <Label htmlFor="jobType-all" className="text-sm font-normal cursor-pointer">
@@ -236,7 +415,11 @@ const FilterAccordion = () => {
           <div className="space-y-2">
             {locations.map((location) => (
               <div key={location} className="flex items-center space-x-2">
-                <Checkbox id={`location-${location}`} />
+                <Checkbox 
+                  id={`location-${location}`} 
+                  checked={selectedLocations.includes(location)}
+                  onCheckedChange={(checked) => handleLocationChange(location, checked === true)}
+                />
                 <Label htmlFor={`location-${location}`} className="text-sm font-normal cursor-pointer">
                   {location}
                 </Label>
@@ -252,7 +435,11 @@ const FilterAccordion = () => {
           <div className="space-y-2">
             {experiences.map((exp) => (
               <div key={exp} className="flex items-center space-x-2">
-                <Checkbox id={`experience-${exp}`} />
+                <Checkbox 
+                  id={`experience-${exp}`} 
+                  checked={selectedExperiences.includes(exp)}
+                  onCheckedChange={(checked) => handleExperienceChange(exp, checked === true)}
+                />
                 <Label htmlFor={`experience-${exp}`} className="text-sm font-normal cursor-pointer">
                   {exp}
                 </Label>
@@ -267,7 +454,7 @@ const FilterAccordion = () => {
         <AccordionContent className="px-4 pt-2 pb-4">
           <div className="space-y-4">
             <Slider
-              defaultValue={[40000]}
+              value={salaryRange}
               max={200000}
               step={5000}
               onValueChange={setSalaryRange}
@@ -284,7 +471,7 @@ const FilterAccordion = () => {
       <AccordionItem value="date" className="border rounded-md">
         <AccordionTrigger className="px-4">Last Date</AccordionTrigger>
         <AccordionContent className="px-4 pt-2 pb-4">
-          <RadioGroup defaultValue="all">
+          <RadioGroup value={lastDate} onValueChange={setLastDate}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="all" id="date-all" />
               <Label htmlFor="date-all" className="text-sm font-normal cursor-pointer">

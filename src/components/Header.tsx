@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Search, Menu, X, BriefcaseBusiness, Bell, User } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,9 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -52,6 +54,15 @@ const Header = () => {
   const toggleSearch = () => {
     setSearchVisible(!searchVisible);
     if (mobileMenuOpen) setMobileMenuOpen(false);
+  };
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/jobs?keyword=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm('');
+      if (searchVisible) setSearchVisible(false);
+    }
   };
 
   return (
@@ -101,13 +112,16 @@ const Header = () => {
             </Button>
 
             {/* Search bar on desktop */}
-            <div className="hidden md:flex items-center relative">
+            <form onSubmit={handleSearch} className="hidden md:flex items-center relative">
               <Input
                 type="search"
                 placeholder="Search jobs..."
                 className="w-[200px] lg:w-[260px] rounded-full h-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
               <Button 
+                type="submit"
                 variant="ghost" 
                 size="icon" 
                 className="absolute right-0"
@@ -115,7 +129,7 @@ const Header = () => {
               >
                 <Search className="h-4 w-4" />
               </Button>
-            </div>
+            </form>
 
             {/* User actions */}
             <div className="hidden md:flex items-center space-x-1">
@@ -159,14 +173,17 @@ const Header = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden pb-4 md:hidden"
             >
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Input
                   type="search"
                   placeholder="Search jobs..."
                   className="w-full rounded-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   autoFocus
                 />
                 <Button 
+                  type="submit"
                   variant="ghost" 
                   size="icon" 
                   className="absolute right-0 top-0"
@@ -174,7 +191,7 @@ const Header = () => {
                 >
                   <Search className="h-4 w-4" />
                 </Button>
-              </div>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>

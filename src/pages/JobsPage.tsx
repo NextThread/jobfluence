@@ -18,24 +18,77 @@ const JobsPage = () => {
   const [jobsPerPage] = useState(8);
   const { category } = useParams();
   const location = useLocation();
+  const isMobile = useIsMobile();
+  
   const searchParams = new URLSearchParams(location.search);
   const keyword = searchParams.get('keyword') || '';
   const locationParam = searchParams.get('location') || '';
-  const isMobile = useIsMobile();
+  
+  // Get filter values from URL parameters
+  const categoriesParam = searchParams.get('categories')?.split(',') || [];
+  const locationsParam = searchParams.get('locations')?.split(',') || [];
+  const experiencesParam = searchParams.get('experiences')?.split(',') || [];
+  const jobTypeParam = searchParams.get('jobType') || '';
+  const lastDateParam = searchParams.get('lastDate') || '';
+  const salaryParam = searchParams.get('salary') ? Number(searchParams.get('salary')) : 0;
 
-  // Filter jobs based on category, keyword and location
+  // Filter jobs based on all parameters
   const filteredJobs = JOBS.filter((job) => {
-    const matchesCategory = category ? job.category.toLowerCase().includes(category.toLowerCase()) : true;
+    // Base filters
+    const matchesCategory = category 
+      ? job.category.toLowerCase().includes(category.toLowerCase()) 
+      : true;
+      
     const matchesKeyword = keyword
       ? job.title.toLowerCase().includes(keyword.toLowerCase()) ||
         job.company.toLowerCase().includes(keyword.toLowerCase()) ||
         job.description.toLowerCase().includes(keyword.toLowerCase())
       : true;
+      
     const matchesLocation = locationParam
       ? job.location.toLowerCase().includes(locationParam.toLowerCase())
       : true;
-
-    return matchesCategory && matchesKeyword && matchesLocation;
+    
+    // Category filter
+    const matchesCategoryFilter = categoriesParam.length > 0
+      ? categoriesParam.some(cat => job.category.includes(cat))
+      : true;
+      
+    // Location filter from filter component
+    const matchesLocationFilter = locationsParam.length > 0
+      ? locationsParam.some(loc => job.location.includes(loc))
+      : true;
+      
+    // Experience filter
+    const matchesExperience = experiencesParam.length > 0
+      ? experiencesParam.some(exp => job.experience === exp)
+      : true;
+      
+    // Job type filter
+    const matchesJobType = jobTypeParam && jobTypeParam !== 'all'
+      ? job.jobType.toLowerCase() === jobTypeParam.toLowerCase()
+      : true;
+      
+    // Salary filter
+    const matchesSalary = salaryParam > 0
+      ? job.salary >= salaryParam
+      : true;
+      
+    // Last date filter logic would go here if we had actual date objects
+    // For now, we'll just return true
+    const matchesLastDate = true;
+    
+    return (
+      matchesCategory && 
+      matchesKeyword && 
+      matchesLocation && 
+      matchesCategoryFilter && 
+      matchesLocationFilter && 
+      matchesExperience && 
+      matchesJobType && 
+      matchesSalary &&
+      matchesLastDate
+    );
   });
 
   // Get current jobs
@@ -53,7 +106,7 @@ const JobsPage = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [category, keyword, locationParam]);
+  }, [location.search, category]);
 
   // Title based on current view
   const getPageTitle = () => {

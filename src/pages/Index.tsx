@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, MapPin, Briefcase, ArrowRight, ChevronRight } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,19 @@ const jobCategories = [
 const Index = () => {
   const [jobKeyword, setJobKeyword] = useState('');
   const [jobLocation, setJobLocation] = useState('');
+  const navigate = useNavigate();
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    window.location.href = `/jobs?keyword=${jobKeyword}&location=${jobLocation}`;
+    
+    const params = new URLSearchParams();
+    if (jobKeyword) params.append('keyword', jobKeyword);
+    if (jobLocation) params.append('location', jobLocation);
+    
+    navigate({
+      pathname: '/jobs',
+      search: params.toString()
+    });
   };
 
   // Get featured jobs (hot or new)

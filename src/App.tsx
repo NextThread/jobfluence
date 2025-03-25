@@ -9,6 +9,8 @@ import NotFound from "./pages/NotFound";
 import JobDetailsPage from "./pages/JobDetailsPage";
 import Layout from "./components/Layout";
 import JobsPage from "./pages/JobsPage";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,8 @@ const App = () => (
           <Route path="/jobs" element={<Layout><JobsPage /></Layout>} />
           <Route path="/jobs/:category" element={<Layout><JobsPage /></Layout>} />
           <Route path="/job/:id" element={<Layout><JobDetailsPage /></Layout>} />
+          <Route path="/privacy" element={<Layout><PrivacyPolicy /></Layout>} />
+          <Route path="/terms" element={<Layout><TermsOfService /></Layout>} />
           <Route path="*" element={<Layout><NotFound /></Layout>} />
         </Routes>
       </BrowserRouter>
